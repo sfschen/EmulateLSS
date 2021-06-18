@@ -21,19 +21,11 @@ nproc= comm.Get_size()
 
 
 class AnzuParameters():
-    """Returns a vector of parameters to sample at.
-       This should be coordinated with the theory module being used,
-       in this case for Anzu the parameters we can vary are:
-           zfid:  zfid
-           cosmo: wb,wc,ns,sig8,hub
-           bias:  b1,b2,bs,bn
-           stoch: sn
-       and pmin,pmax should have bounds for each.
-       To hold a parameter fixed set pmin=pmax for that parameter. """
+    """Returns a vector of parameters to sample at."""
     def __init__(self,pmin,pmax):
         """Takes the range of parameters, only varying those where pmin!=pmax.
-        The dimensions of pmin and pmax should equal the total number
-        of parameters for the model."""
+           The dimensions of pmin and pmax should equal the total number
+           of parameters for the model."""
         self.pmin = pmin
         self.pmax = pmax
         ndim      = np.sum(np.abs(pmax-pmin)>0)
@@ -52,7 +44,7 @@ class AnzuParameters():
 
 
 def generate_models(params,nstart=0,nend=10):
-    """Does the work of generating the model predictions.  This also
+    """Does the work of generating the model predictions.  This
        needs to know something about what is passed upon model class
        creation and what is a parameter to the model's __call__ method."""
     par,kvv,pgg,pgm,pmm = None,None,None,None,None
@@ -61,8 +53,8 @@ def generate_models(params,nstart=0,nend=10):
             pvec = params.sample(n)
             if par is None:
                 par = np.zeros( (nend-nstart,pvec.size) )
-            model= AnzuPowerSpectra(pvec[0],pvec[1:6])
-            thy  = model(pvec[6:])
+            model= AnzuPowerSpectra(pvec[0],pvec[1:5])
+            thy  = model(pvec[5:])
             if kvv is None:
                 kvv = thy[0].copy() # Only need one copy.
                 pgg = np.zeros( (nend-nstart,thy[1].size) )
@@ -82,7 +74,7 @@ def generate_models(params,nstart=0,nend=10):
     # Now write the answers to disk.  We have the choice here to
     # include constant parameters or exclude them.  I am including
     # them, as they can be easily removed later by selecting on
-    # parameters with np.std==0.
+    # parameters with np.std<1e-10 or so.
     if rank==0:
         fb = "anzu_{:07d}_{:07d}".format(nstart,nend)
         # For now just use gzipped ascii, this could change.
@@ -107,5 +99,5 @@ if __name__=="__main__":
     pmin,pmax = np.loadtxt(sys.argv[1],unpack=True)
     #
     pars = AnzuParameters(pmin,pmax)
-    generate_models(pars,nstart=0,nend=10)
+    generate_models(pars,nstart=0,nend=128)
     #

@@ -94,11 +94,21 @@ class AnzuPowerSpectra():
         kk,pmm = self.combine_bias_terms_pk_mm()
         return((kk,pgg,pgm,pmm))
         #
+    def get_native_pars(self,OmM,hub,ns,sig8,wb=0.022):
+        """Returns the 'native' parameters wb,wc,ns,sig8,hub that
+           Anzu expects given inputs OmM, hub, ns, sig8 (and wb=0.022)."""
+        # We found a better match to our fiducial cosmology if we
+        # subtract non-zero wnu and slightly tilt ns.
+        wnu  = 0.0006442013903673842
+        wc   = OmM*hub**2 - wb - wnu
+        cpar = [wb,wc,ns-0.005,sig8,hub]
+        return(cpar)
+        #
     def __init__(self,z_eff,pars=None):
         """Initialize the class.
            z_eff is the (effective) redshift at which to evaluate P(k).
            If no cosmological parameters are passed it uses a default
-           set otherwise "pars" should hold wb,wc,ns,sig8,hub."""
+           set otherwise "pars" should hold OmM,hub,ns,sig8 (and wb=0.022)."""
         # Store z_eff as a scale factor.
         self.aeff= 1.0/(1.0+z_eff)
         # Set the k-values we want to return.
@@ -111,7 +121,7 @@ class AnzuPowerSpectra():
         if pars is None:
             wb,wc,ns,sig8,hub = 0.022,0.119-0.0006442,0.96824-0.005,0.771,0.677
         else:
-            wb,wc,ns,sig8,hub = pars
+            wb,wc,ns,sig8,hub = self.get_native_pars(*pars)
         cospars  = np.atleast_2d([wb,wc,-1.,ns,sig8,100*hub,3.046,self.aeff])
         pkvec    = self.emu.predict(self.kv,cospars)[0,:,:]
         # Now add the nabla terms assuming <X, nabla^2 delta> ~ -k^2 <X, 1>.
