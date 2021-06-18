@@ -39,7 +39,7 @@ class QuasiRandomSequence():
         ret = ret%1
         return(ret)
         #
-    def nth_vector(self,n):
+    def get_vector(self,n):
         """Returns just the nth vector in the sequence, starting at n=1."""
         ret = (self.seed + n*self.alpha)%1
         return(ret)
