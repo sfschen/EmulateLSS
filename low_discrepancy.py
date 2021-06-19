@@ -18,15 +18,16 @@ class QuasiRandomSequence():
     def __init__(self,n_dim=1,seed=0.5):
         """Initializes the class and sets the vector alpha.  The sequences
            will consist of n_dim-dimensional vectors in [0,1)^n_dim."""
-        # Get the generalized golden ratio for n_dim dimensions, aka
-        # the "harmonius numbers" of Hans van de Laan.
         self.seed= seed
-        self.phi = 2
-        for i in range(16):
-            self.phi = pow(1+self.phi,1/(n_dim+1.0))
-        self.phi = 1.0/self.phi
+        # Get the generalized golden ratio for n_dim dimensions, aka
+        # the "harmonius numbers" of Hans van de Laan.  This solves
+        # x^{d+1}=x+1 using Newton-Raphson:
+        phi = 1.0
+        for i in range(20):
+            phi = phi-(pow(phi,n_dim+1)-phi-1)/((n_dim+1)*pow(phi,n_dim)-1)
+        self.phiinv = 1.0/phi
         # and hence generate our base vector, alpha.
-        self.alpha=np.array([(self.phi**(i+1))%1 for i in range(n_dim)])
+        self.alpha=np.array([(self.phiinv**(i+1))%1 for i in range(n_dim)])
         #
     def __call__(self,n):
         """Returns the first n vectors in the (Korobov) sequence, with x[i,:]
