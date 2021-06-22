@@ -11,28 +11,77 @@ theory:
     theory_lss.HEFT.HEFTCalculator: null
 
 likelihood:
-  lss_likelihood.pk_likelihood.SimPkLikelihood : null
+  lss_likelihood.pk_likelihood.SimPkLikelihood :
+    params:
+      b1:
+        prior:
+          dist: uniform
+          min: -0.5
+          max:  2.0
+        latex: b_1
+      b2:
+        prior:
+          dist: uniform
+          min: -2.0
+          max: 2.0
+        latex: b_2
+      bs:
+        prior:
+          dist: uniform
+          min: -2.0
+          max: 2.0
+        latex: b_s
+      sn:
+        prior:
+          dist: uniform
+          min: 50
+          max: 2000
+        latex: SN_0
+      bk:
+        prior :
+          dist: uniform
+          min: -2.0
+          max: 2.0
+        latex: b_k
+    
 
 params:
     logA:
       prior:
-        min: 1.61
-        max: 3.91
-      ref:
-        dist: norm
-        loc: 3.05
-        scale: 0.001
+        dist: uniform
+        min: 3.0
+        max: 3.18
       proposal: 0.001
       latex: \log(10^{10} A_\mathrm{s})
       drop: true
     As:
       value: 'lambda logA: 1e-10*np.exp(logA)'
       latex: A_\mathrm{s}
-    ns: 0.9667
-    H0: 67.74
-    ombh2: 0.02230
-    omch2: 0.1188
-    w: -1
+    ns:
+      prior:
+        dist: uniform
+        min: 0.927
+        max: 0.997
+    H0:
+      prior:
+        dist: uniform
+        min: 61.7
+        max: 74.7
+    w:
+      prior:
+        dist: uniform
+        min: -1.399
+        max: -0.565
+    ombh2:
+      prior:
+        dist: uniform
+        min: 0.0207
+        max: 0.0237
+    omch2:
+      prior:
+        dist: uniform
+        min: 0.101
+        max: 0.131
     omegam:
       latex: \Omega_\mathrm{m}
     omegamh2:
@@ -72,6 +121,7 @@ params:
       latex: '{\rm{Age}}/\mathrm{Gyr}'
     rdrag:
       latex: r_\mathrm{drag}
+      
 sampler:
   mcmc:
     drag: true
@@ -82,11 +132,13 @@ sampler:
     Rminus1_cl_stop: 0.2
   
 timing: False
-output: /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_b1_s8
+output: /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_s8_om_bias
 stop_on_error: True
 emulate:
-  provider :
-    [heft_spectrum_grid]
+#  provider :
+#    [heft_spectrum_grid]
   likelihood :
     lss_likelihood.pk_likelihood.SimPkLikelihood: model_pred
-  output_filename : /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_b1_s8_training_data.h5
+  output_filename : /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_allpars_training_data.h5
+  nstart: 0
+  nend: 100000

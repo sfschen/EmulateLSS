@@ -3,7 +3,9 @@ from cobaya.yaml import yaml_load
 from low_discrepancy import QuasiRandomSequence
 from mpi4py import MPI
 import numpy as np
+import h5py
 import yaml
+import sys
 
 
 comm = MPI.COMM_WORLD
@@ -21,7 +23,7 @@ class AnzuParameters():
         self.pmin = pmin
         self.pmax = pmax
         self.ndim = np.sum(np.abs(pmax-pmin) > 0)
-        self.qrs = QuasiRandomSequence(ndim)
+        self.qrs = QuasiRandomSequence(self.ndim)
 
     def sample(self, n):
         """Gets the n'th vector of parameter values."""
@@ -43,29 +45,32 @@ def generate_models(params, param_names, model, emu_info, nstart=0, nend=10):
             pars = dict(zip(param_names, pvec))
             out['params'][n] = pvec
             model.logposterior(pars)
-
+            if rank==0:
+                print(n)
+                sys.stdout.flush()
+                
             if 'provider' in emu_info:
-
                 for thy in emu_info['provider']:
                     pred = model.provider.get_result(thy)
-
+                    
                     if thy not in out:
-                        tsize = [d for d in pred.shape]
-                        tsize.prepend(npars)
+                        tsize = [npars]
+                        [tsize.append(d) for d in pred.shape]
+#                        tsize = [d for d in pred.shape]
+#                        tsize.prepend(npars)
                         out[thy] = np.zeros(tsize)
-                        out[thy][n] = pred
+                    out[thy][n] = pred
 
             if 'likelihood' in emu_info:
-
                 for like in emu_info['likelihood']:
                     attr = emu_info['likelihood'][like]
                     pred = getattr(model.likelihood[like], attr)
                     name = '{}.{}'.format(like, attr)
                     if name not in out:
-                        tsize = [d for d in pred.shape]
-                        tsize.prepend(npars)
+                        tsize = [npars]
+                        [tsize.append(d) for d in pred.shape]
                         out[name] = np.zeros(tsize)
-                        out[name][n] = pred
+                    out[name][n] = pred
 
     for k in out:
         tot = np.zeros_like(out[k])
@@ -73,13 +78,13 @@ def generate_models(params, param_names, model, emu_info, nstart=0, nend=10):
         out[k] = tot
 
     if rank == 0:
-        with h5py.File(emu_info['output_filename'], 'wb') as fp:
+        with h5py.File(emu_info['output_filename'], 'w') as fp:
 
             for k in out:
                 tot = out[k]
                 shape = tot.shape
                 fp.create_dataset(k, shape)
-                fp[k] = tot
+                fp[k][:] = tot
 
 
 if __name__ == '__main__':
@@ -92,8 +97,12 @@ if __name__ == '__main__':
     model = get_model(info)
 
     bounds = model.prior.bounds()
-    param_names = model.parameters
+    param_names = model.prior.params
     pars = AnzuParameters(bounds[:, 0], bounds[:, 1])
-    emu_info = info['emulator']
+    emu_info = info['emulate']
+    nstart = emu_info.pop('nstart', 0)
+    nend = emu_info.pop('nend', 100)
 
-    generate_models(pars, param_names, model, emu_info)
+    generate_models(pars, param_names, model, emu_info, nstart=nstart, nend=nend)
+
+
