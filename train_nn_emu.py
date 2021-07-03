@@ -4,12 +4,15 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import EarlyStopping
 import yaml
 import h5py
+import json
 
 
 class Emulator(tf.keras.Model):
 
     def __init__(self, n_params, nks, pc_sigmas, pc_mean, v,
-                 n_hidden=[100, 100, 100], n_components=10):
+                 n_hidden=[100, 100, 100], n_components=10,
+                 mean=None, sigmas=None, fstd=None,
+                 param_mean=None, param_sigmas=None):
         super(Emulator, self).__init__()
 
         trainable = True
@@ -29,7 +32,12 @@ class Emulator(tf.keras.Model):
         self.betas = []
         self.pc_sigmas = pc_sigmas
         self.pc_mean = pc_mean
+        self.param_mean = param_mean
+        self.param_sigmas = param_sigmas
         self.v = v
+        self.mean = mean
+        self.sigmas = sigmas
+        self.fstd = fstd
 
         for i in range(self.n_layers):
             self.W.append(tf.Variable(tf.random.normal([self.architecture[i], self.architecture[i+1]], 0., np.sqrt(
@@ -65,11 +73,112 @@ class Emulator(tf.keras.Model):
         x = tf.matmul(x, self.v[:, :self.n_components].T)
 
         return x
+    
+    def save(self, filebase):
+        W = [self.W.weights[i].numpy().tolist() for i in range(len(self.W.weights))]
+        b = [self.b.weights[i].numpy().tolist() for i in range(len(self.b.weights))]
+        alpha = [self.alphas.weights[i].numpy().tolist() for i in range(len(self.alphas.weights))]
+        beta = [self.betas.weights[i].numpy().tolist() for i in range(len(self.betas.weights))]
+        pc_sigmas = self.pc_sigmas[:self.n_components].tolist()
+        pc_mean = self.pc_mean[:self.n_components].tolist()
+        v = self.v[:,:self.n_components].tolist()
 
+        with open('{}_W.json'.format(filebase), 'w') as fp:
+            json.dump(W, fp)
 
+        with open('{}_b.json'.format(filebase), 'w') as fp:
+            json.dump(b, fp)
+
+        with open('{}_alphas.json'.format(filebase), 'w') as fp:
+            json.dump(alpha, fp)
+
+        with open('{}_betas.json'.format(filebase), 'w') as fp:
+            json.dump(beta, fp)
+
+        with open('{}_pc_mean.json'.format(filebase), 'w') as fp:
+            json.dump(pc_mean, fp)
+
+        with open('{}_pc_sigmas.json'.format(filebase), 'w') as fp:
+            json.dump(pc_sigmas, fp)
+
+        with open('{}_v.json'.format(filebase), 'w') as fp:
+            json.dump(v, fp)
+
+        if hasattr(self, 'sigmas'):
+            sigmas = self.sigmas.tolist()
+            with open('{}_sigmas.json'.format(filebase), 'w') as fp:
+                json.dump(sigmas, fp)
+
+        if hasattr(self, 'mean'):
+            mean = self.mean.tolist()
+            with open('{}_mean.json'.format(filebase), 'w') as fp:
+                json.dump(mean, fp)
+
+        if hasattr(self, 'param_sigmas'):
+            sigmas = self.param_sigmas.tolist()
+            with open('{}_param_sigmas.json'.format(filebase), 'w') as fp:
+                json.dump(sigmas, fp)
+
+        if hasattr(self, 'param_mean'):
+            mean = self.param_mean.tolist()
+            with open('{}_param_mean.json'.format(filebase), 'w') as fp:
+                json.dump(mean, fp)
+
+        if hasattr(self, 'fstd'):
+            fstd = self.fstd.tolist()
+            with open('{}_fstd.json'.format(filebase), 'w') as fp:
+                json.dump(fstd, fp)
+                
+    def load(self, filebase):
+
+        with open('{}_W.json'.format(filebase), 'r') as fp:
+            self.W = json.load(fp)
+            for i, wi in enumerate(self.W):
+                self.W[i] = np.array(wi).astype(np.float32)
+
+        with open('{}_b.json'.format(filebase), 'r') as fp:
+            self.b = json.load(fp)
+            for bi in self.b:
+                bi = np.array(bi).astype(np.float32)
+
+        with open('{}_alphas.json'.format(filebase), 'r') as fp:
+            self.alphas = json.load(fp)
+            for ai in self.alphas:
+                ai = np.array(ai).astype(np.float32)
+
+        with open('{}_betas.json'.format(filebase), 'r') as fp:
+            self.betas = json.load(fp)
+            for bi in self.betas:
+                bi = np.array(bi).astype(np.float32)
+
+        with open('{}_pc_mean.json'.format(filebase), 'r') as fp:
+            self.pc_mean = np.array(json.load(fp)).astype(np.float32)
+
+        with open('{}_pc_sigmas.json'.format(filebase), 'r') as fp:
+            self.pc_sigmas = np.array(json.load(fp)).astype(np.float32)
+
+        with open('{}_v.json'.format(filebase), 'r') as fp:
+            self.v = np.array(json.load(fp)).astype(np.float32)
+
+        with open('{}_sigmas.json'.format(filebase), 'r') as fp:
+             self.sigmas = np.array(json.load(fp)).astype(np.float32)
+                
+        with open('{}_mean.json'.format(filebase), 'r') as fp:
+             self.mean = np.array(json.load(fp)).astype(np.float32)
+                
+        with open('{}_fstd.json'.format(filebase), 'r') as fp:
+             self.fstd = np.array(json.load(fp)).astype(np.float32)
+
+        with open('{}_param_sigmas.json'.format(filebase), 'r') as fp:
+             self.param_sigmas = np.array(json.load(fp)).astype(np.float32)
+                
+        with open('{}_param_mean.json'.format(filebase), 'r') as fp:
+             self.param_mean = np.array(json.load(fp)).astype(np.float32)
+                
 def train_emu(Ptrain, Ftrain, validation_frac=0.2,
               n_hidden=[100, 100, 100], n_pcs=20,
-              n_epochs=1000):
+              n_epochs=1000, fstd=None, pmean=None,
+              pstd=None, outfile=None):
 
     iis = np.random.rand(len(Ptrain)) > validation_frac
 
@@ -106,6 +215,8 @@ def train_emu(Ptrain, Ftrain, validation_frac=0.2,
     # Now start the emulator and run it
     emulator = Emulator(n_params=Ptrain.shape[-1], nks=Ftrain.shape[-1],
                         pc_sigmas=pc_sigmas, pc_mean=pc_mean, v=v,
+                        sigmas=sigmas, mean=mean, fstd=fstd,
+                        param_mean=pmean, param_sigmas=pstd,
                         n_components=n_pcs, n_hidden=n_hidden)
     emulator.compile(optimizer='adam', loss='mse', metrics=['mse'])
 
@@ -117,6 +228,9 @@ def train_emu(Ptrain, Ftrain, validation_frac=0.2,
         emulator.optimizer.lr = lr
         emulator.fit(Ptrain, Ftrain, epochs=n_epochs, batch_size=nbatch,
                      validation_data=(Pval, Fval), callbacks=[es], verbose=2)
+
+        if outfile is not None:
+            emulator.save(outfile)
 
     return emulator
 
@@ -136,6 +250,7 @@ if __name__ == '__main__':
 
     n_hidden = emu_info['n_hidden']
     n_pcs = emu_info['n_pcs']
+    n_epochs = emu_info['n_epochs']
     use_asinh = emu_info['use_asinh']
     scale_by_std = emu_info['scale_by_std']
 
@@ -145,12 +260,22 @@ if __name__ == '__main__':
 
     if use_asinh:
         if scale_by_std:
+            print('use asinh, scaled')
+            sys.stdout.flush()            
             Fstd = np.std(Ftrain, axis=0)
             Ftrain = np.arcsinh(Ftrain/Fstd)
         else:
             Ftrain = np.arcsinh(Ftrain)
+            Fstd = None
 
+    Pmean = np.mean(Ptrain,axis=0)
+    Psigmas = np.std(Ptrain,axis=0)
+    Ptrain = (Ptrain - Pmean)/Psigmas
+    
     emu = train_emu(Ptrain, Ftrain, validation_frac=0.2,
-                    n_hidden=n_hidden, n_pcs=n_pcs)
+                    n_hidden=n_hidden, n_pcs=n_pcs,
+                    n_epochs=n_epochs, fstd=Fstd,
+                    pmean=Pmean, pstd=Psigmas,
+                    outfile=output_path)
 
     emu.save(output_path)
