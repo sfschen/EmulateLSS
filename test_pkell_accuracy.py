@@ -1,11 +1,49 @@
-import sys
+import sys, os
+os.environ['COBAYA_NOMPI'] = 'True'
+sys.path.append('/global/project/projectdirs/desi/users/jderose/CobayaLSS/')
+sys.path.append('/global/project/projectdirs/desi/users/jderose/CobayaLSS/lss_likelihood/')
+sys.path.append('/global/project/projectdirs/desi/users/jderose/EmulateLSS/')
 import numpy as np
+import matplotlib.pyplot as plt
 import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
 from tensorflow.keras.callbacks import EarlyStopping
+from cobaya.model import get_model
+from cobaya.yaml import yaml_load
+import matplotlib
 import yaml
 import h5py
 import json
 
+plt.rcParams['figure.figsize']        = 8., 6.
+plt.rcParams['figure.dpi']            = 100
+plt.rcParams['figure.subplot.left']   = 0.125
+plt.rcParams['figure.subplot.right']  = 0.9
+plt.rcParams['figure.subplot.bottom'] = 0.125
+plt.rcParams['figure.subplot.top']    = 0.9
+plt.rcParams['axes.labelsize']        = 18
+plt.rcParams['axes.titlesize']        = 18
+plt.rcParams['xtick.top']             = True
+plt.rcParams['xtick.bottom']          = True
+plt.rcParams['ytick.left']            = True
+plt.rcParams['ytick.right']           = True
+plt.rcParams['xtick.direction']       = 'in'
+plt.rcParams['ytick.direction']       = 'in'
+plt.rcParams['xtick.labelsize']       = 18
+plt.rcParams['ytick.labelsize']       = 18
+plt.rcParams['xtick.major.pad']       = 6.
+plt.rcParams['xtick.minor.pad']       = 6.
+plt.rcParams['ytick.major.pad']       = 6.
+plt.rcParams['ytick.minor.pad']       = 6.
+plt.rcParams['xtick.major.size']      = 6. # major tick size in points
+plt.rcParams['xtick.minor.size']      = 3. # minor tick size in points
+plt.rcParams['ytick.major.size']      = 6. # major tick size in points
+plt.rcParams['ytick.minor.size']      = 3. # minor tick size in points
+plt.rcParams['text.usetex']           = True
+plt.rcParams['font.family']           = 'serif'
+plt.rcParams['font.serif']            = 'Computer Modern Roman Bold'
+plt.rcParams['font.size']             = 18
 
 class Emulator(tf.keras.Model):
 
@@ -106,27 +144,17 @@ class Emulator(tf.keras.Model):
 
         if hasattr(self, 'sigmas'):
             sigmas = self.sigmas.tolist()
-            with open('{}_sigmas.json'.format(filebase), 'w') as fp:
+            with open('{}_sigmas.json', 'w') as fp:
                 json.dump(sigmas, fp)
 
         if hasattr(self, 'mean'):
             mean = self.mean.tolist()
-            with open('{}_mean.json'.format(filebase), 'w') as fp:
-                json.dump(mean, fp)
-
-        if hasattr(self, 'param_sigmas'):
-            sigmas = self.param_sigmas.tolist()
-            with open('{}_param_sigmas.json'.format(filebase), 'w') as fp:
-                json.dump(sigmas, fp)
-
-        if hasattr(self, 'param_mean'):
-            mean = self.param_mean.tolist()
-            with open('{}_param_mean.json'.format(filebase), 'w') as fp:
+            with open('{}_mean.json', 'w') as fp:
                 json.dump(mean, fp)
 
         if hasattr(self, 'fstd'):
             fstd = self.fstd.tolist()
-            with open('{}_fstd.json'.format(filebase), 'w') as fp:
+            with open('{}_fstd.json', 'w') as fp:
                 json.dump(fstd, fp)
                 
     def load(self, filebase):
@@ -162,125 +190,85 @@ class Emulator(tf.keras.Model):
 
         with open('{}_sigmas.json'.format(filebase), 'r') as fp:
              self.sigmas = np.array(json.load(fp)).astype(np.float32)
-                
+
         with open('{}_mean.json'.format(filebase), 'r') as fp:
              self.mean = np.array(json.load(fp)).astype(np.float32)
-                
+
         with open('{}_fstd.json'.format(filebase), 'r') as fp:
              self.fstd = np.array(json.load(fp)).astype(np.float32)
 
         with open('{}_param_sigmas.json'.format(filebase), 'r') as fp:
              self.param_sigmas = np.array(json.load(fp)).astype(np.float32)
-                
+
         with open('{}_param_mean.json'.format(filebase), 'r') as fp:
              self.param_mean = np.array(json.load(fp)).astype(np.float32)
                 
-def train_emu(Ptrain, Ftrain, validation_frac=0.2,
-              n_hidden=[100, 100, 100], n_pcs=20,
-              n_epochs=1000, fstd=None, pmean=None,
-              pstd=None, outfile=None):
 
-    iis = np.random.rand(len(Ptrain)) > validation_frac
 
-    Pval = Ptrain[~iis, :]
-    Fval = Ftrain[~iis, :]
 
-    Ptrain = Ptrain[iis, :]
-    Ftrain = Ftrain[iis, :]
+def measure_accuracy(training_filename, target, 
+                  target_params, modelpath,
+                  n_pcs, val_factor=10):
+    
+    
+    
+    data = h5py.File(training_filename, 'r') 
+    x = data[target_params][:][::val_factor]
+    y = data[target][:][::val_factor]
+    data.close()
 
-    # Construct Principle Components
-    mean = np.mean(Ftrain, axis=0)
-    mean = np.array(mean, dtype='float32')
-    sigmas = np.std(Ftrain, axis=0)
-    sigmas = np.array(sigmas, dtype='float32')
-    Ftrain = (Ftrain - mean) / sigmas
-    Fval = (Fval - mean) / sigmas
-
-    cov_matrix = np.cov(Ftrain.T)
-    w, v = np.linalg.eigh(cov_matrix)
-    # flip to rank in ascending eigenvalue
-    w = np.flip(w)
-    v = np.flip(v, axis=1)
-    v = np.array(v, dtype='float32')
-    pc_train = np.dot(Ftrain, v)
-
-    pc_mean = np.mean(pc_train, axis=0)
-    pc_sigmas = np.std(pc_train, axis=0)
-
-    # Learning rate and batch size schedule:
-
-    lrs = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
-    nbatchs = np.array([16, 32, 64, 128, 256]) * 10
-
-    # Now start the emulator and run it
-    emulator = Emulator(n_params=Ptrain.shape[-1], nks=Ftrain.shape[-1],
-                        pc_sigmas=pc_sigmas, pc_mean=pc_mean, v=v,
-                        sigmas=sigmas, mean=mean, fstd=fstd,
-                        param_mean=pmean, param_sigmas=pstd,
-                        n_components=n_pcs, n_hidden=n_hidden)
-    emulator.compile(optimizer='adam', loss='mse', metrics=['mse'])
-
-    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
-
-    for lr, nbatch in zip(lrs, nbatchs):
-        print("Using learning rate, batch size:  %.2e, %d." % (lr, nbatch))
-
-        emulator.optimizer.lr = lr
-        emulator.fit(Ptrain, Ftrain, epochs=n_epochs, batch_size=nbatch,
-                     validation_data=(Pval, Fval), callbacks=[es], verbose=2)
-
-        if outfile is not None:
-            emulator.save(outfile)
-
-    return emulator
+    emu = Emulator(x.shape[-1], y.shape[-1],
+                   None, None, None,
+                   n_components=n_pcs)
+    emu.load(modelpath)
+    
+    x_rescaled = (x - emu.param_mean) / emu.param_sigmas
+    
+    y_pred = np.sinh(emu(x_rescaled).numpy() * emu.sigmas + emu.mean) * emu.fstd
+    err = np.abs((y - y_pred) / y)
+    
+    return err, y, y_pred
 
 
 if __name__ == '__main__':
-
-    info_txt = sys.argv[1]
+    info_txt = '/global/project/projectdirs/desi/users/jderose/EmulateLSS/configs/unit_redmagic_wl_x_rsd_allpars.yaml'
     with open(info_txt, 'rb') as fp:
         emu_info = yaml.load(fp)
 
-    training_data_filename = emu_info['training_filename']
-    output_path = emu_info['output_path']
+    model = get_model(emu_info)
 
-    emu_target = emu_info['target']
-    emu_params = emu_info['param_dataset']
+    emu_info = emu_info['emulate']
+    training_data_filename = emu_info['output_filename']
     training_data = h5py.File(training_data_filename, 'r')
-
-    n_hidden = emu_info['n_hidden']
-    n_pcs = emu_info['n_pcs']
-    n_epochs = emu_info['n_epochs']
-    use_asinh = emu_info['use_asinh']
-    scale_by_std = emu_info['scale_by_std']
-    downsample = int(emu_info.pop('downsample', 1))
-
-    # data should already be cleaned
-    Ptrain = training_data[emu_params][:]
-    Ftrain = training_data[emu_target][:]
-
-    idx = (np.abs(Ftrain)<1e7).all(axis=1)
-    Ptrain = Ptrain[idx][::downsample]
-    Ftrain = Ftrain[idx][::downsample]
-
-    if use_asinh:
-        if scale_by_std:
-            print('use asinh, scaled')
-            sys.stdout.flush()            
-            Fstd = np.std(Ftrain, axis=0)
-            Ftrain = np.arcsinh(Ftrain/Fstd)
-        else:
-            Ftrain = np.arcsinh(Ftrain)
-            Fstd = None
-
-    Pmean = np.mean(Ptrain,axis=0)
-    Psigmas = np.std(Ptrain,axis=0)
-    Ptrain = (Ptrain - Pmean)/Psigmas
     
-    emu = train_emu(Ptrain, Ftrain, validation_frac=0.2,
-                    n_hidden=n_hidden, n_pcs=n_pcs,
-                    n_epochs=n_epochs, fstd=Fstd,
-                    pmean=Pmean, pstd=Psigmas,
-                    outfile=output_path)
+    targets = ['p0', 'p2', 'p4']
+    modelpaths = ['/global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_wl_x_rsd_allpars_broad_bias_100xfast_1e6pts_training_data_p0_emu',
+                  '/global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_wl_x_rsd_allpars_broad_bias_100xfast_1e6pts_training_data_p2_emu',
+                  '/global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_wl_x_rsd_allpars_broad_bias_100xfast_1e6pts_training_data_p4_emu']
 
-    emu.save(output_path)
+    p0err, p0, p0_pred = measure_accuracy(training_data_filename, targets[0], 'params_pkell', modelpaths[0], 64)
+    p2err, p2, p2_pred = measure_accuracy(training_data_filename, targets[1], 'params_pkell', modelpaths[1], 64)
+    p4err, p4, p4_pred = measure_accuracy(training_data_filename, targets[2], 'params_pkell', modelpaths[2], 64)
+
+    k = model.theory['theory_lss.RSD.RSDCalculator'].k
+
+    f, ax = plt.subplots(3, 1, sharex=True, sharey=True)
+    ax[0].loglog(k, np.percentile(p0err, [50, 68, 95], axis=0).T)
+    ax[1].loglog(k, np.percentile(p2err, [50, 68, 95], axis=0).T)
+    ax[2].loglog(k, np.percentile(p4err, [50, 68, 95], axis=0).T)
+
+
+    ax[2].set_xlabel(r'$k \, [h\, Mpc^{-1}]$')
+    ax[0].set_ylabel(r'$P_0(k)$ error')
+    ax[1].set_ylabel(r'$P_2(k)$ error')
+    ax[2].set_ylabel(r'$P_4(k)$ error')
+    ax[0].set_ylim([1e-4, 5e-2])
+    ax[0].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator(3))
+    ax[1].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator(3))
+    ax[2].get_yaxis().set_minor_locator(matplotlib.ticker.AutoMinorLocator(3))
+    ax[0].legend(['50th percentile', '68th percentile', '95th percentile'], fontsize=12)
+    plt.subplots_adjust(wspace=0.1, hspace=0.0)
+
+    
+    plt.savefig('pkell_accuracy.pdf', dpi=100, bbox_inches='tight')
+    
