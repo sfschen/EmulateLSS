@@ -51,7 +51,7 @@ def generate_models(params, param_names, model, emu_info, nstart=0, nend=10,
     if param_names_fast is not None:
         param_names_all = param_names + param_names_fast
     else:
-        param_names_all = params_names
+        param_names_all = param_names
         
     npars_slow = (npars + nfast_per_slow - 1) // nfast_per_slow
     npars_this = ((npars_slow + nproc - 1) // nproc) * nfast_per_slow
