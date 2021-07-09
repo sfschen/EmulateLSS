@@ -210,7 +210,7 @@ def train_emu(Ptrain, Ftrain, validation_frac=0.2,
     # Learning rate and batch size schedule:
 
     lrs = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
-    nbatchs = np.array([16, 32, 64, 128, 256]) * 10
+    nbatchs = np.array([16, 32, 64, 128, 256]) * 20
 
     # Now start the emulator and run it
     emulator = Emulator(n_params=Ptrain.shape[-1], nks=Ftrain.shape[-1],
@@ -271,7 +271,7 @@ if __name__ == '__main__':
             Ftrain = np.arcsinh(Ftrain/Fstd)
         else:
             Ftrain = np.arcsinh(Ftrain)
-            Fstd = None
+            Fstd = np.ones(Ftrain.shape[-1])
 
     Pmean = np.mean(Ptrain,axis=0)
     Psigmas = np.std(Ptrain,axis=0)

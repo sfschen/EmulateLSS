@@ -143,7 +143,7 @@ if __name__ == '__main__':
     nfast = emu_info.pop('nfast_per_slow', 1)
 
     if param_names_fast is not None:
-        param_names = list(set(param_names) - set(param_names_fast))
+        param_names = [p for p in param_names if p not in param_names_fast]
         fast_idx = [model.prior.params.index(f) for f in param_names_fast]
         slow_idx = [model.prior.params.index(f) for f in param_names]
 
