@@ -104,8 +104,7 @@ class Emulator(tf.keras.Model):
             json.dump(out, fp)
 
 
-    def load(self, filebase):
-        
+    def load(self, filebase):   
         with open('{}.json'.format(filebase), 'r') as fp:
             weights = json.load(fp)
             
@@ -113,6 +112,7 @@ class Emulator(tf.keras.Model):
                 if k in ['W', 'b', 'alphas', 'betas']:
                     for i, wi in enumerate(weights[k]):
                         weights[k][i] = np.array(wi).astype(np.float32)
+#                         tf.Variable(np.array(wi).astype(np.float32), name="W_" + str(i), trainable=True))
                 else:
                     weights[k] = np.array(weights[k]).astype(np.float32)
 
@@ -121,7 +121,8 @@ class Emulator(tf.keras.Model):
 def train_emu(Ptrain, Ftrain, validation_frac=0.2,
               n_hidden=[100, 100, 100], n_pcs=20,
               n_epochs=1000, fstd=None, pmean=None,
-              pstd=None, outfile=None):
+              pstd=None, outfile=None, lrs=None,
+              nbatchs=None, restart_file=None):
 
     iis = np.random.rand(len(Ptrain)) > validation_frac
 
@@ -150,17 +151,15 @@ def train_emu(Ptrain, Ftrain, validation_frac=0.2,
     pc_mean = np.mean(pc_train, axis=0)
     pc_sigmas = np.std(pc_train, axis=0)
 
-    # Learning rate and batch size schedule:
-
-    lrs = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
-    nbatchs = np.array([16, 32, 64, 128, 256]) * 20
-
     # Now start the emulator and run it
     emulator = Emulator(n_params=Ptrain.shape[-1], nks=Ftrain.shape[-1],
                         pc_sigmas=pc_sigmas, pc_mean=pc_mean, v=v,
                         sigmas=sigmas, mean=mean, fstd=fstd,
                         param_mean=pmean, param_sigmas=pstd,
                         n_components=n_pcs, n_hidden=n_hidden)
+    if restart_file is not None:
+        emulator.load(restart_file)
+
     emulator.compile(optimizer='adam', loss='mse', metrics=['mse'])
 
     es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=50)
@@ -186,6 +185,9 @@ if __name__ == '__main__':
 
     training_data_filename = emu_info['training_filename']
     output_path = emu_info['output_path']
+    restart = emu_info.pop('restart', False)
+    learning_rate = emu_info.pop('learning_rate', [1e-2, 1e-3, 1e-4, 1e-5, 1e-6])
+    nbatchs = emu_info.pop('nbatchs', [320, 640, 1280, 2560, 5120])
 
     emu_target = emu_info['target']
     emu_params = emu_info['param_dataset']
@@ -219,11 +221,17 @@ if __name__ == '__main__':
     Pmean = np.mean(Ptrain,axis=0)
     Psigmas = np.std(Ptrain,axis=0)
     Ptrain = (Ptrain - Pmean)/Psigmas
+
+    if restart:
+        restart_file = output_path
+        output_path = output_path + '_restarted'
     
     emu = train_emu(Ptrain, Ftrain, validation_frac=0.2,
                     n_hidden=n_hidden, n_pcs=n_pcs,
                     n_epochs=n_epochs, fstd=Fstd,
                     pmean=Pmean, pstd=Psigmas,
-                    outfile=output_path)
+                    outfile=output_path,
+                    lrs=learning_rate, nbatchs=nbatchs,
+                    restart_file=restart_file)
 
     emu.save(output_path)
