@@ -82,98 +82,41 @@ class Emulator(tf.keras.Model):
         pc_sigmas = self.pc_sigmas[:self.n_components].tolist()
         pc_mean = self.pc_mean[:self.n_components].tolist()
         v = self.v[:,:self.n_components].tolist()
+        sigmas = self.sigmas.tolist()
+        mean = self.mean.tolist()
+        param_sigmas = self.param_sigmas.tolist()
+        param_mean = self.param_mean.tolist()
+        fstd = self.fstd.tolist()
 
-        with open('{}_W.json'.format(filebase), 'w') as fp:
-            json.dump(W, fp)
+        out = {'W':W, 'b':b,
+               'alphas':alpha,
+               'betas':beta,
+               'pc_sigmas':pc_sigmas, 
+               'pc_mean':pc_mean,
+               'v':v,
+               'sigmas':sigmas,
+               'mean':mean,
+               'param_sigmas':param_sigmas,
+               'param_mean':param_mean,
+               'fstd':fstd}
 
-        with open('{}_b.json'.format(filebase), 'w') as fp:
-            json.dump(b, fp)
+        with open('{}.json'.format(filebase), 'w') as fp:
+            json.dump(out, fp)
 
-        with open('{}_alphas.json'.format(filebase), 'w') as fp:
-            json.dump(alpha, fp)
 
-        with open('{}_betas.json'.format(filebase), 'w') as fp:
-            json.dump(beta, fp)
-
-        with open('{}_pc_mean.json'.format(filebase), 'w') as fp:
-            json.dump(pc_mean, fp)
-
-        with open('{}_pc_sigmas.json'.format(filebase), 'w') as fp:
-            json.dump(pc_sigmas, fp)
-
-        with open('{}_v.json'.format(filebase), 'w') as fp:
-            json.dump(v, fp)
-
-        if hasattr(self, 'sigmas'):
-            sigmas = self.sigmas.tolist()
-            with open('{}_sigmas.json'.format(filebase), 'w') as fp:
-                json.dump(sigmas, fp)
-
-        if hasattr(self, 'mean'):
-            mean = self.mean.tolist()
-            with open('{}_mean.json'.format(filebase), 'w') as fp:
-                json.dump(mean, fp)
-
-        if hasattr(self, 'param_sigmas'):
-            sigmas = self.param_sigmas.tolist()
-            with open('{}_param_sigmas.json'.format(filebase), 'w') as fp:
-                json.dump(sigmas, fp)
-
-        if hasattr(self, 'param_mean'):
-            mean = self.param_mean.tolist()
-            with open('{}_param_mean.json'.format(filebase), 'w') as fp:
-                json.dump(mean, fp)
-
-        if hasattr(self, 'fstd'):
-            fstd = self.fstd.tolist()
-            with open('{}_fstd.json'.format(filebase), 'w') as fp:
-                json.dump(fstd, fp)
-                
     def load(self, filebase):
+        
+        with open('{}.json'.format(filebase), 'r') as fp:
+            weights = json.load(fp)
+            
+            for k in weights:
+                if k in ['W', 'b', 'alphas', 'betas']:
+                    for i, wi in enumerate(weights[k]):
+                        weights[k][i] = np.array(wi).astype(np.float32)
+                else:
+                    weights[k] = np.array(weights[k]).astype(np.float32)
 
-        with open('{}_W.json'.format(filebase), 'r') as fp:
-            self.W = json.load(fp)
-            for i, wi in enumerate(self.W):
-                self.W[i] = np.array(wi).astype(np.float32)
-
-        with open('{}_b.json'.format(filebase), 'r') as fp:
-            self.b = json.load(fp)
-            for bi in self.b:
-                bi = np.array(bi).astype(np.float32)
-
-        with open('{}_alphas.json'.format(filebase), 'r') as fp:
-            self.alphas = json.load(fp)
-            for ai in self.alphas:
-                ai = np.array(ai).astype(np.float32)
-
-        with open('{}_betas.json'.format(filebase), 'r') as fp:
-            self.betas = json.load(fp)
-            for bi in self.betas:
-                bi = np.array(bi).astype(np.float32)
-
-        with open('{}_pc_mean.json'.format(filebase), 'r') as fp:
-            self.pc_mean = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_pc_sigmas.json'.format(filebase), 'r') as fp:
-            self.pc_sigmas = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_v.json'.format(filebase), 'r') as fp:
-            self.v = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_sigmas.json'.format(filebase), 'r') as fp:
-             self.sigmas = np.array(json.load(fp)).astype(np.float32)
-                
-        with open('{}_mean.json'.format(filebase), 'r') as fp:
-             self.mean = np.array(json.load(fp)).astype(np.float32)
-                
-        with open('{}_fstd.json'.format(filebase), 'r') as fp:
-             self.fstd = np.array(json.load(fp)).astype(np.float32)
-
-        with open('{}_param_sigmas.json'.format(filebase), 'r') as fp:
-             self.param_sigmas = np.array(json.load(fp)).astype(np.float32)
-                
-        with open('{}_param_mean.json'.format(filebase), 'r') as fp:
-             self.param_mean = np.array(json.load(fp)).astype(np.float32)
+                setattr(self,k, weights[k])
                 
 def train_emu(Ptrain, Ftrain, validation_frac=0.2,
               n_hidden=[100, 100, 100], n_pcs=20,
