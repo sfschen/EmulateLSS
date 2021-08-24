@@ -5,10 +5,10 @@ os.environ['HDF5_USE_FILE_LOCKING'] = 'FALSE'
 #sys.path.append('/global/project/projectdirs/desi/users/jderose/CobayaLSS/lss_likelihood/')
 #sys.path.append('/global/project/projectdirs/desi/users/jderose/EmulateLSS/')
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.callbacks import EarlyStopping
+#import tensorflow as tf
+#from tensorflow.keras.models import Sequential
+#from tensorflow.keras.layers import Dense
+#from tensorflow.keras.callbacks import EarlyStopping
 from cobaya.model import get_model
 from cobaya.yaml import yaml_load
 import yaml
@@ -32,8 +32,9 @@ def load_training_data(key, dataset, downsample=None):
             psize = [size_i[0]*nproc, p.shape[1]]
             [size.append(size_i[i]) for i in range(1, len(size_i))]
             
-            Y = np.zeros(size)
             X = np.zeros(psize)
+            Y = np.zeros(size)
+            
 
         X[i * size_i[0]:(i + 1) * size_i[0]] = p
         Y[i * size_i[0]:(i + 1) * size_i[0]] = d
