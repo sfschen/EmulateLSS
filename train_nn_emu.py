@@ -225,6 +225,8 @@ if __name__ == '__main__':
     if restart:
         restart_file = output_path
         output_path = output_path + '_restarted'
+    else:
+        restart_file = None
     
     emu = train_emu(Ptrain, Ftrain, validation_frac=0.2,
                     n_hidden=n_hidden, n_pcs=n_pcs,

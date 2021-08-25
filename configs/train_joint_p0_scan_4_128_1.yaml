@@ -1,0 +1,10 @@
+training_filename: /global/cscratch1/sd/sfschen/rsd_emulator/bossz3_training_data_debugged.h5
+output_path: /global/cscratch1/sd/sfschen/rsd_emulator/bossz3_p0_net
+target: p0
+param_dataset: params_pkell
+use_asinh: True
+scale_by_std: True
+n_epochs: 30
+n_pcs: 50
+n_hidden: [128, 128, 128, 128]
+downsample: 1
