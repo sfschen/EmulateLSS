@@ -15,7 +15,7 @@
 
 module load python
 source activate cobaya
-export PYTHONPATH=${PYTHONPATH}:/global/project/projectdirs/desi/users/jderose/CobayaLSS/:/global/project/projectdirs/desi/users/jderose/CobayaLSS/lss_likelihood/ #replace with youre cobayalss directories
+export PYTHONPATH=${PYTHONPATH}:/global/project/projectdirs/desi/users/jderose/CobayaLSS/:/global/project/projectdirs/desi/users/jderose/CobayaLSS/lss_likelihood/ #replace with your cobayalss directories
 export HDF5_USE_FILE_LOCKING=FALSE
 
 #need to reformat the training data file before running training

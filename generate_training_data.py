@@ -1,6 +1,8 @@
 from cobaya.model import get_model
 from cobaya.yaml import yaml_load
 from low_discrepancy import QuasiRandomSequence
+import chaospy as cp
+import pyDOE
 from mpi4py import MPI
 import numpy as np
 import h5py
@@ -8,29 +10,52 @@ import yaml
 import sys
 
 
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nproc = comm.Get_size()
 
-
 class AnzuParameters():
     """Returns a vector of parameters to sample at."""
 
-    def __init__(self, pmin, pmax):
+    def __init__(self, pmin, pmax, scheme='qrs', ntot=None):
         """Takes the range of parameters, only varying those where pmin!=pmax.
            The dimensions of pmin and pmax should equal the total number
            of parameters for the model."""
         self.pmin = pmin
         self.pmax = pmax
         self.ndim = np.sum(np.abs(pmax-pmin) > 0)
-        self.qrs = QuasiRandomSequence(self.ndim)
+        self.scheme = scheme
+        if scheme == 'qrs':
+            self.seq = QuasiRandomSequence(self.ndim)
+        elif scheme == 'sobol':
+            import chaospy as cp
+            self.seq = cp.create_sobol_samples(ntot, self.ndim).T
+        elif scheme == 'lhs':
+            self.seq = pyDOE.lhs(self.ndim, samples=ntot)
+        elif scheme == 'lhs_maximin':
+            self.seq = pyDOE.lhs(self.ndim, samples=ntot, criterion='maximin')
+        elif scheme == 'aemulus':
+            self.seq = np.genfromtxt('aemulus_alpha_lh.txt')
+        elif scheme == 'aemulus_lowsig8':
+            self.seq = np.genfromtxt('aemulus_alpha_lowsig8_lh.txt')            
+        elif scheme == 'aemulus_test':
+            self.seq = np.genfromtxt('aemulus_alpha_test.txt')
 
     def sample(self, n):
         """Gets the n'th vector of parameter values."""
         pars = self.pmin.copy()
         vary = np.abs(self.pmax-self.pmin) > 0
-        pars[vary] = self.pmin[vary] + \
-            (self.pmax-self.pmin)[vary]*self.qrs.get_vector(n)
+        if self.scheme == 'qrs':
+            v = self.seq.get_vector(n)
+        else:
+            v = self.seq[n]
+
+        if 'aemulus' not in self.scheme:
+            pars[vary] = self.pmin[vary] + \
+                         (self.pmax-self.pmin)[vary]*v
+        else:
+            pars = self.seq[n]
         return pars
 
 
@@ -126,21 +151,30 @@ def generate_models(params, param_names, model, emu_info, nstart=0, nend=10,
 
 if __name__ == '__main__':
 
+
+
     info_txt = sys.argv[1]
     with open(info_txt, 'rb') as fp:
         info = yaml.load(fp)
 
-    info['debug'] = False
+    emu_info = info['emulate']    
+#    info['debug'] = emu_info.pop('debug', False)
+
     model = get_model(info)
 
     bounds = model.prior.bounds()
     param_names = model.prior.params
 
-    emu_info = info['emulate']
+
     nstart = emu_info.pop('nstart', 0)
     nend = emu_info.pop('nend', 100)
     param_names_fast = emu_info.pop('param_names_fast', None)
     nfast = emu_info.pop('nfast_per_slow', 1)
+    design_scheme = emu_info.pop('design_scheme', 'qrs')
+    seed = emu_info.pop('seed', 0)
+
+    #seed with same params
+    np.random.seed(seed)    
 
     if param_names_fast is not None:
         param_names = [p for p in param_names if p not in param_names_fast]
@@ -150,9 +184,10 @@ if __name__ == '__main__':
         bounds_fast = bounds[fast_idx]
         bounds_slow = bounds[slow_idx]
 
-        params = AnzuParameters(bounds_slow[:, 0], bounds_slow[:, 1])
-        params_fast = AnzuParameters(bounds_fast[:, 0], bounds_fast[:, 1])
+        params = AnzuParameters(bounds_slow[:, 0], bounds_slow[:, 1], scheme=design_scheme, ntot=(nend - nstart))
+        params_fast = AnzuParameters(bounds_fast[:, 0], bounds_fast[:, 1], scheme=design_scheme, ntot=(nend- nstart))
     else:
+        params = AnzuParameters(bounds[:, 0], bounds[:, 1], scheme=design_scheme, ntot=(nend - nstart))
         params_fast = None
     
     generate_models(params, param_names, model, emu_info, nstart=nstart, nend=nend,
