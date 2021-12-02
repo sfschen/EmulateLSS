@@ -10,7 +10,7 @@ import numpy as np
 #from tensorflow.keras.layers import Dense
 #from tensorflow.keras.callbacks import EarlyStopping
 from cobaya.model import get_model
-from cobaya.yaml import yaml_load
+from cobaya.yaml import yaml_load, yaml_load_file
 import yaml
 import h5py
 
@@ -45,40 +45,54 @@ def load_training_data(key, dataset, downsample=None):
 if __name__ == '__main__':
 
     info_txt = sys.argv[1]
-    with open(info_txt, 'rb') as fp:
-        info = yaml.load(fp)
+    info = yaml_load_file(info_txt)
     
-    info['packages_path'] = '/global/project/projectdirs/desi/users/jderose/CobayaLSS/'
-    info['debug'] = False
+    training_data_filename = info['emulate']['output_filename']
+    print(training_data_filename)
+    #with open(info_txt, 'rb') as fp:
+    #    info = yaml.load(fp)
+    
+    #info['packages_path'] = '/global/project/projectdirs/desi/users/jderose/CobayaLSS/'
+    #info['debug'] = False
 
-    model = get_model(info)
-    emu_info = info['emulate']
-    training_data_filename = emu_info['output_filename']
+    #model = get_model(info)
+    #emu_info = info['emulate']
+    #training_data_filename = emu_info['output_filename']
+    #training_data = h5py.File(training_data_filename, 'r+')
+    #z = model.theory['theory_lss.HEFT.HEFTCalculator'].z
+
     training_data = h5py.File(training_data_filename, 'r+')
-
-    Ptrain_all, Ftrain_all = load_training_data('lss_likelihood.wl_x_rsd.HarmonicSpaceWLxRSD.pkell_spectra', training_data)
+    
+    Ptrain_all, Ftrain_all = load_training_data('joint_likelihood_emu.JointLikelihood.pkells', training_data)
 
     idx = np.any(Ptrain_all>0, axis=1) #& np.all(Ftrain_all[:,0,:,:,1]>0, axis=(1,2))
 
     Ptrain = Ptrain_all[idx]
     Ftrain = Ftrain_all[idx]
-    Ftrain = np.einsum('ijkl->ijlk', Ftrain).reshape(-1,600)
+    #Ftrain = np.einsum('ijkl->ijlk', Ftrain).reshape(-1,600) # we don't do any binning etc.
+    
+    # the parameters are logA, omch2, H0, b1, b2, bs, a0, a2, sn0, sn2, B1, F
+    # so we dont need the last two
     
     try:
-        training_data.create_dataset('params_pkell', Ptrain.shape)
+        training_data.create_dataset('params_pkell', Ptrain[:,:-2].shape)
     except:
         del training_data['params_pkell']
         del training_data['p0']
         del training_data['p2']
         del training_data['p4']
-        training_data.create_dataset('params_pkell', Ptrain.shape)
+        training_data.create_dataset('params_pkell', Ptrain[:,:-2].shape)
 
-    training_data.create_dataset('p0', Ftrain[:,:200].shape)
-    training_data.create_dataset('p2', Ftrain[:,:200].shape)
-    training_data.create_dataset('p4', Ftrain[:,:200].shape)
+    training_data.create_dataset('p0', Ftrain[:,:,0].shape)
+    training_data.create_dataset('p2', Ftrain[:,:,0].shape)
+    training_data.create_dataset('p4', Ftrain[:,:,0].shape)
 
-    training_data['params_pkell'][:] = Ptrain[:]
-    training_data['p0'][:] = Ftrain[:,:200]
-    training_data['p2'][:] = Ftrain[:,200:400]
-    training_data['p4'][:] = Ftrain[:,400:600]
+    training_data['params_pkell'][:] = Ptrain[:,:-2]
+    training_data['p0'][:] = Ftrain[:,:,0]
+    training_data['p2'][:] = Ftrain[:,:,1]
+    training_data['p4'][:] = Ftrain[:,:,2]
+
+    print(training_data['params_pkell'].shape)
+    print(training_data['p0'].shape)
+    
     training_data.close()    

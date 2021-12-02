@@ -1,0 +1,259 @@
+theory:
+  camb:
+    extra_args:
+      bbn_predictor: PArthENoPE_880.2_standard.dat
+      lens_potential_accuracy: 1
+      num_massive_neutrinos: 1
+      nnu: 3.046
+      mnu: 0.06
+      tau: 0.07
+      theta_H0_range:
+      - 20
+      - 100
+    stop_at_error: True
+    
+  joint_likelihood_emu.PT_pk_theory_zs:
+      zfids:
+      - 0.61
+      chiz_fids:
+      - 1559.56  # Mpc/h.
+      Hz_fids:
+      - 1.40856  # Relative to H(0).
+      bao_R: 15.
+      stop_at_error: True
+      
+likelihood:
+  joint_likelihood_emu.JointLikelihood:
+    zfid:     0.61
+    fs_sample_names:
+      - z3
+    bao_sample_names:
+      - z3
+    stop_at_error: True
+    
+params:
+  logA:
+    prior:
+      min: 1.61
+      max: 3.91
+    ref:
+      dist: norm
+      loc:  2.855744847e+00
+      scale: 0.05
+    drop: True
+    latex: \log(10^{10} A_\mathrm{s})
+  As:
+    value: 'lambda logA: 1e-10*np.exp(logA)'
+    latex: A_\mathrm{s}
+  ns:
+    value: 0.9665
+    latex: n_\mathrm{s}
+  ombh2:
+    value: 0.02242
+    latex: \omega_b
+  omch2:
+    prior:
+      min: 0.05
+      max: 0.2
+    ref:
+      dist: norm
+      loc:   1.207477749e-01
+      scale: 0.01
+    latex: \omega_c
+  H0:
+    prior:
+      min: 60.0
+      max: 80.0
+    ref:
+      dist: norm
+      loc:  6.848816981e+01
+      scale: 1.0
+    latex: H_0
+  omegam:
+    latex: \Omega_\mathrm{m}
+  sigma8:
+    latex: \sigma_8
+    
+  # z3
+  bsig8_z3:
+    prior:
+      dist: uniform
+      min:  0.5
+      max:  3.0
+    ref:
+      dist:  norm
+      loc:   1.526692166e+00
+      scale: 0.05
+    latex: (1+b_1^{z3})\sigma_8
+  b2_z3:
+    prior:
+      dist: uniform
+      min:  -10
+      max:  10
+      #dist:  norm
+      #loc:   0.0
+      #scale: 10.
+    ref:
+      dist:  norm
+      loc:   -8.314263690e-01
+      scale: 0.1
+    latex: b_2^{z3}
+  bs_z3:
+    prior:
+      dist: uniform
+      min:  -10
+      max:  10
+    ref:
+      dist:  norm
+      loc:   3.885992851e+00 
+      scale: 0.1
+    latex: b_s^{z3}
+  alpha0_z3:
+    prior:
+      dist: uniform
+      min:  -100
+      max:  100
+    ref:
+      dist:  norm
+      loc:    -3.276825491e-01
+      scale: 0.5
+    latex: \alpha_0^{z3}
+  alpha2_z3:
+    prior:
+      dist: uniform
+      min:  -100
+      max:  100
+    ref:
+      dist:  norm
+      loc:   -7.663287740e-02
+      scale: 0.5
+    latex: \alpha_2^{z3}
+  SN0_z3:
+    prior:
+      dist: uniform
+      min:  -3000
+      max:  3000
+    ref:
+      dist:  norm
+      loc:   -2.421709474e+02
+      scale: 100.
+    latex: SN_0^{z3}
+  SN2_z3:
+    prior:
+      dist: uniform
+      min:  -1.00e+6
+      max:  1.00e+6
+    ref:
+      dist:  norm
+      loc:   1.100232256e+04
+      scale:  1.00e+3
+    latex: SN_2^{z3}
+
+  # Post-recon parameters
+  B1_z3:
+    prior:
+      dist: uniform
+      min: 0.0
+      max: 5.0
+    ref:
+      dist: norm
+      loc: 1.12
+      scale: 0.1
+    latex: B_1^{z3}
+  F_z3:
+    prior:
+      dist: uniform
+      min: 0.0
+      max: 5.0
+    ref:
+      dist: norm
+      loc: 0.63
+      scale: 0.1
+    latex: F^{z3}
+    
+  # For these priors we take the philosophy that rba0^2 (a0 + a1/rbao) <~ <rbao^2 xi> ~ 50
+  # i.e. a0 <~ 5e-3, a2 <~ 5e-1, and we enforce a 10x wide Gaussian prior on this estimation
+  M0_z3:
+    #prior:
+    #  dist: norm
+    #  loc: 0.
+    #  scale: 5e-2
+    #ref:
+    #  dist: norm
+    #  loc: 0.00405758
+    #  scale: 0.001
+    value: 0.
+    latex: M_0^{z3}
+  M1_z3:
+    #prior:
+    #  dist: norm
+    #  loc: 0.
+    #  scale: 5.
+    #ref:
+    #  dist: norm
+    #  loc: -0.30657935
+    #  scale: 0.1
+    value: 0.
+    latex: M_1^{z3}
+  M2_z3:
+    value: 0.
+  Q0_z3:
+    #prior:
+    #  dist: norm
+    #  loc: 0.
+    #  scale: 5e-2
+    #ref:
+    #  dist: norm
+    #  loc: -0.00699841
+    #  scale: 0.001
+    value: 0.
+    latex: Q_0^{z3}
+  Q1_z3:
+    #prior:
+    #  dist: norm
+    #  loc: 0.
+    #  scale: 5.
+    #ref:
+    #  dist: norm
+    #  loc: 0.93152832
+    #  scale: 0.1
+    value: 0.
+    latex: Q_1^{z3}
+  Q2_z3:
+    value: 0.
+    
+
+sampler:
+  evaluate:
+    override:
+      # cosmology
+      logA: 3.047
+      omch2: 0.11933
+      H0: 67.66
+      # z3
+      bsig8_z3: 1.535805
+      b2_z3:   -2.47490318
+      bs_z3:   -0.17495553
+      alpha0_z3: -0.1791873
+      alpha2_z3: 1.18218936
+      SN0_z3: 0.
+      SN2_z3: 29296.768
+      # z3 recon:
+      B1_z3: 1.11901047
+      F_z3: 0.63034335
+      #M0_z3:  0.00405758
+      #M1_z3: -0.30657935
+      #Q0_z3: -0.00699841
+      #Q1_z3: 0.93152832
+timing: True
+output: chains/test_gc
+stop_on_error: True
+
+emulate:
+  likelihood :
+    joint_likelihood_emu.JointLikelihood: [pkells,xiells]
+  output_filename : /global/cscratch1/sd/sfschen/rsd_emulator/bossz3_training_data_debugged.h5
+  nstart: 0
+  nend: 10
+  param_names_fast: ['bsig8_z3', 'b2_z3', 'bs_z3', 'alpha0_z3', 'alpha2_z3', 'SN0_z3', 'SN2_z3', 'B1_z3', 'F_z3']
+  nfast_per_slow: 100
