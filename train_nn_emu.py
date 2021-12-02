@@ -187,7 +187,9 @@ if __name__ == '__main__':
     output_path = emu_info['output_path']
     restart = emu_info.pop('restart', False)
     learning_rate = emu_info.pop('learning_rate', [1e-2, 1e-3, 1e-4, 1e-5, 1e-6])
+    learning_rate = [float(l) for l in learning_rate]
     nbatchs = emu_info.pop('nbatchs', [320, 640, 1280, 2560, 5120])
+    nbatchs = [int(n) for n in nbatchs]
 
     emu_target = emu_info['target']
     emu_params = emu_info['param_dataset']
@@ -198,6 +200,7 @@ if __name__ == '__main__':
     n_epochs = emu_info['n_epochs']
     use_asinh = emu_info['use_asinh']
     scale_by_std = emu_info['scale_by_std']
+    training_set_offset = emu_info.pop('training_set_offset', 0)
     downsample = int(emu_info.pop('downsample', 1))
 
     # data should already be cleaned
@@ -205,8 +208,8 @@ if __name__ == '__main__':
     Ftrain = training_data[emu_target][:]
 
     idx = (np.abs(Ftrain)<1e7).all(axis=1)
-    Ptrain = Ptrain[idx][::downsample]
-    Ftrain = Ftrain[idx][::downsample]
+    Ptrain = Ptrain[idx][training_set_offset::downsample]
+    Ftrain = Ftrain[idx][training_set_offset::downsample]
 
     if use_asinh:
         if scale_by_std:
@@ -225,6 +228,8 @@ if __name__ == '__main__':
     if restart:
         restart_file = output_path
         output_path = output_path + '_restarted'
+    else:
+        restart_file = None
     
     emu = train_emu(Ptrain, Ftrain, validation_frac=0.2,
                     n_hidden=n_hidden, n_pcs=n_pcs,

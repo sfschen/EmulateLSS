@@ -54,7 +54,6 @@ if __name__ == '__main__':
     emu_info = info['emulate']
     training_data_filename = emu_info['output_filename']
     training_data = h5py.File(training_data_filename, 'r+')
-    z = model.theory['theory_lss.HEFT.HEFTCalculator'].z
 
     Ptrain_all, Ftrain_all = load_training_data('lss_likelihood.wl_x_rsd.HarmonicSpaceWLxRSD.pkell_spectra', training_data)
 
