@@ -9,9 +9,9 @@ theory:
         - 20
         - 100
     theory_lss.HEFT.HEFTCalculator:
-      heft : True
-      use_pcb: False
-      kecleft: True
+      heft : False
+      use_pcb: True
+      kecleft: False
 #    theory_lss.RSD.RSDCalculator: null
 
 likelihood:
@@ -20,7 +20,7 @@ likelihood:
     zmin_proj: 0.0
     zmax_proj: 2.0
     nz_proj: 20
-    heft: True
+    heft: False
     halofit_pmm: False
     
     params:
@@ -49,47 +49,32 @@ likelihood:
           min: 0
           max: 10000
         latex: SN_0
-      smag_0 : 0.0
-      a_ia: 0.0
-      eta_ia: 0.0
 
 params:
     logA:
       prior:
         dist: uniform
-        min: 3.0
-        max: 3.179
+        min: 2
+        max: 4
       proposal: 0.001
       latex: \log(10^{10} A_\mathrm{s})
       drop: true
     As:
       value: 'lambda logA: 1e-10*np.exp(logA)'
       latex: A_\mathrm{s}
-    ns:
-      prior:
-        dist: uniform
-        min: 0.927
-        max: 0.997
+    ns: 0.97
     H0:
       prior:
         dist: uniform
-        min: 61.6
-        max: 74.7
-    w:
-      prior:
-        dist: uniform
-        min: -1.39
-        max: -0.565
-    ombh2:
-      prior:
-        dist: uniform
-        min: 0.0206
-        max: 0.0237
+        min: 55.0
+        max: 91.0
+    w: -1
+    ombh2: 0.022
     omch2:
       prior:
         dist: uniform
-        min: 0.1012
-        max: 0.1317
+        min: 0.08
+        max: 0.16
     omegam:
       latex: \Omega_\mathrm{m}
     omegamh2:
@@ -142,17 +127,13 @@ sampler:
 timing: False
 output: /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_s8_om_bias
 stop_on_error: True
-<<<<<<< HEAD
-debug: False
-=======
 debug: True
->>>>>>> main
 
 emulate:
   likelihood :
     lss_likelihood.wl_x_rsd.HarmonicSpaceWLxRSD : [rs_power_spectra]
 
-  output_filename : /global/cscratch1/sd/jderose/cobaya_heft/chains/lrg_x_planck_aemulus_priors_20xfast_rs_spectra_1e6pts_training_data_v1.h5
+  output_filename : /global/cscratch1/sd/jderose/cobaya_heft/chains/lrg_x_planck_cleft_priors_20xfast_rs_spectra_1e6pts_training_data_v3.h5
   nstart: 0
   nend: 1000000
   param_names_fast: ['b1_0', 'b2_0', 'bk_0', 'sn_0']
