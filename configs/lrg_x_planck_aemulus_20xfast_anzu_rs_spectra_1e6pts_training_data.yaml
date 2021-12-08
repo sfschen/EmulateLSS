@@ -142,11 +142,7 @@ sampler:
 timing: False
 output: /global/cscratch1/sd/jderose/cobaya_heft/chains/unit_redmagic_3x2pt_s8_om_bias
 stop_on_error: True
-<<<<<<< HEAD
 debug: False
-=======
-debug: True
->>>>>>> main
 
 emulate:
   likelihood :
