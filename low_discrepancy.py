@@ -7,6 +7,50 @@
 
 import numpy as np
 
+class Parameters():
+    """Returns a vector of parameters to sample at."""
+
+    def __init__(self, pmin, pmax, scheme='qrs', ntot=None):
+        """Takes the range of parameters, only varying those where pmin!=pmax.
+           The dimensions of pmin and pmax should equal the total number
+           of parameters for the model."""
+        self.pmin = pmin
+        self.pmax = pmax
+        self.ndim = np.sum(np.abs(pmax-pmin) > 0)
+        self.scheme = scheme
+        if scheme == 'qrs':
+            self.seq = QuasiRandomSequence(self.ndim)
+        elif scheme == 'sobol':
+            import chaospy as cp
+            self.seq = cp.create_sobol_samples(ntot, self.ndim).T
+        elif scheme == 'lhs':
+            self.seq = pyDOE.lhs(self.ndim, samples=ntot)
+        elif scheme == 'lhs_maximin':
+            self.seq = pyDOE.lhs(self.ndim, samples=ntot, criterion='maximin')
+        elif scheme == 'aemulus':
+            self.seq = np.genfromtxt('aemulus_alpha_lh.txt')
+        elif scheme == 'aemulus_lowsig8':
+            self.seq = np.genfromtxt('aemulus_alpha_lowsig8_lh.txt')            
+        elif scheme == 'aemulus_test':
+            self.seq = np.genfromtxt('aemulus_alpha_test.txt')
+
+    def sample(self, n):
+        """Gets the n'th vector of parameter values."""
+        pars = self.pmin.copy()
+        vary = np.abs(self.pmax-self.pmin) > 0
+        if self.scheme == 'qrs':
+            v = self.seq.get_vector(n)
+        else:
+            v = self.seq[n]
+
+        if 'aemulus' not in self.scheme:
+            pars[vary] = self.pmin[vary] + \
+                         (self.pmax-self.pmin)[vary]*v
+        else:
+            pars = self.seq[n]
+        return pars
+
+
 
 class QuasiRandomSequence():
     """A simple class to generate quasi-random, or low-discrepancy, sequences

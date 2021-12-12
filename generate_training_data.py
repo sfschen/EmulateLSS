@@ -1,6 +1,6 @@
 from cobaya.model import get_model
 from cobaya.yaml import yaml_load
-from low_discrepancy import QuasiRandomSequence
+from low_discrepancy import QuasiRandomSequence, Parameters
 import chaospy as cp
 import pyDOE
 from mpi4py import MPI
@@ -15,7 +15,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 nproc = comm.Get_size()
 
-class AnzuParameters():
+class Parameters():
     """Returns a vector of parameters to sample at."""
 
     def __init__(self, pmin, pmax, scheme='qrs', ntot=None):
@@ -184,10 +184,10 @@ if __name__ == '__main__':
         bounds_fast = bounds[fast_idx]
         bounds_slow = bounds[slow_idx]
 
-        params = AnzuParameters(bounds_slow[:, 0], bounds_slow[:, 1], scheme=design_scheme, ntot=(nend - nstart))
-        params_fast = AnzuParameters(bounds_fast[:, 0], bounds_fast[:, 1], scheme=design_scheme, ntot=(nend- nstart))
+        params = Parameters(bounds_slow[:, 0], bounds_slow[:, 1], scheme=design_scheme, ntot=(nend - nstart))
+        params_fast = Parameters(bounds_fast[:, 0], bounds_fast[:, 1], scheme=design_scheme, ntot=(nend- nstart))
     else:
-        params = AnzuParameters(bounds[:, 0], bounds[:, 1], scheme=design_scheme, ntot=(nend - nstart))
+        params = Parameters(bounds[:, 0], bounds[:, 1], scheme=design_scheme, ntot=(nend - nstart))
         params_fast = None
     
     generate_models(params, param_names, model, emu_info, nstart=nstart, nend=nend,
