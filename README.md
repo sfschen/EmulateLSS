@@ -26,13 +26,22 @@ See `notebooks/train_surrogates.ipynb` for a toy example of this.
 We make available a number of pre-trained models in `nn_weights`:
 
 Halofit P_mm : `nn_weights/lrg_x_planck_cleft_priors_buzzard_shape_halofit_pmm_20xfast_rs_spectra_1e6pts_training_data_v1_pmm_emu.json`
+
 CLEFT P_gm : `nn_weights/lrg_x_planck_cleft_priors_buzzard_shape_20xfast_rs_spectra_1e6pts_training_data_v1_pgm_emu.json`
+
 CLEFT P_gg : `nn_weights/lrg_x_planck_cleft_priors_buzzard_shape_20xfast_rs_spectra_1e6pts_training_data_v1_pgg_emu.json`
+
 HEFT (anzu) P_mm : `nn_weights/lrg_x_planck_aemulus_priors_20xfast_rs_spectra_1e6pts_training_data_v1_pmm_emu.json`
+
 HEFT (anzu) P_gm : `nn_weights/lrg_x_planck_aemulus_priors_20xfast_rs_spectra_1e6pts_training_data_v1_pgm_emu.json`
+
 HEFT (anzu) P_gg : `nn_weights/lrg_x_planck_aemulus_priors_20xfast_rs_spectra_1e6pts_training_data_v1_pgg_emu.json`
+
 Lagrangian EFT P_0 : `nn_weights/ptchallenge_cmass2_20xfast_1e6pts_training_data_v2_p0_emu.json`
+
 Lagrangian EFT P_2 : `nn_weights/ptchallenge_cmass2_20xfast_1e6pts_training_data_v2_p2_emu.json`
+
 Lagrangian EFT P_4 : `nn_weights/ptchallenge_cmass2_20xfast_1e6pts_training_data_v2_p4_emu.json`
+
 
 See `notebooks/pretrained_models.ipynb` for details on how to load and call these models.
